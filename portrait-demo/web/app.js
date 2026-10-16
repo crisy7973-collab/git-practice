@@ -1,0 +1,27 @@
+const $ = id => document.getElementById(id);
+const canvas = $('canvas'), ctx = canvas.getContext('2d');
+let picture = null, anim = 0, busy = false, outputURL = null;
+function sample(){
+  const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');
+  x.fillStyle='#b9ccba';x.fillRect(0,0,512,512);x.fillStyle='#245c49';x.beginPath();x.ellipse(256,490,160,165,0,0,Math.PI*2);x.fill();
+  x.fillStyle='#293c34';x.beginPath();x.ellipse(256,220,114,140,0,0,Math.PI*2);x.fill();x.fillStyle='#eac4a2';x.beginPath();x.ellipse(256,240,88,110,0,0,Math.PI*2);x.fill();
+  x.fillStyle='#293c34';x.beginPath();x.ellipse(244,133,102,53,-.2,0,Math.PI*2);x.fill();x.fillRect(217,231,10,9);x.fillRect(283,231,10,9);x.strokeStyle='#986850';x.lineWidth=4;x.beginPath();x.arc(256,274,27,0.2,Math.PI-.2);x.stroke();return c;
+}
+picture=sample();
+function frame(t){
+  const prompt=$('prompt').value;
+  const swing=/摇|摆/.test(prompt)?Math.sin(t*2*Math.PI/4)*.025:0;
+  const zoom=1.08+(/拉近/.test(prompt)?.06*(t%4)/4:0)+(/呼吸/.test(prompt)?.015*Math.sin(t*Math.PI):0);
+  ctx.fillStyle='#b9ccba';ctx.fillRect(0,0,512,512);ctx.save();ctx.translate(256,256);ctx.rotate(swing);ctx.scale(zoom,zoom);
+  const ratio=Math.max(512/picture.width,512/picture.height),w=picture.width*ratio,h=picture.height*ratio;
+  ctx.drawImage(picture,-w/2,-h/2,w,h);ctx.restore();ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(12,477,208,24);ctx.fillStyle='#245c49';ctx.font='12px sans-serif';ctx.fillText('普通照片动画 / NON-AI DEMO',20,493);
+}
+function stop(){cancelAnimationFrame(anim);anim=0}
+function preview(){stop();$('result').hidden=true;canvas.hidden=false;const start=performance.now();function tick(now){frame((now-start)/1000);anim=requestAnimationFrame(tick)}anim=requestAnimationFrame(tick)}
+function output(blob,name){if(outputURL)URL.revokeObjectURL(outputURL);outputURL=URL.createObjectURL(blob);$('download').href=outputURL;$('download').download=name;$('download').hidden=false;$('result').src=outputURL;$('result').hidden=false;canvas.hidden=true}
+function setBusy(value){busy=value;for(const id of ['play','export','mode','photo','prompt','driver'])$(id).disabled=value}
+$('photo').onchange=async()=>{const file=$('photo').files[0];if(!file)return;if(file.size>20*1024*1024){$('status').textContent='照片请小于 20MB。';$('photo').value='';return}try{const img=await createImageBitmap(file);if(picture.close)picture.close();picture=img;$('download').hidden=true;preview();$('status').textContent='照片已载入，试试“摇摆”“拉近”“呼吸”。'}catch(e){$('status').textContent='照片无法读取，请使用 JPG、PNG 或 WebP。';$('photo').value=''}};
+$('mode').onchange=()=>{stop();const ai=$('mode').value==='ai';$('driverBox').hidden=!ai;$('export').hidden=ai;$('play').textContent=ai?'生成 AI 人像视频':'预览动画';$('hint').textContent=ai?'支持“眼睛、嘴、表情、头部”关键词，选择运动区域；不是开放式文本生成。':'普通模式只识别“摇摆、拉近、呼吸”，移动整张照片。';$('prompt').value=ai?'头部':'轻轻摇摆，缓慢拉近';$('caption').textContent=ai?'LivePortrait · 人物动作来自驱动视频':'普通照片动画 · 非 AI 生成 · 512 × 512';$('download').hidden=true;$('result').hidden=true;canvas.hidden=false;frame(0);$('status').textContent=ai?'需要启动 FastAPI 后端，且安装好 LivePortrait。':'普通模式已就绪。'};
+$('play').onclick=async()=>{if(busy)return;if($('mode').value==='preview'){preview();return}const photo=$('photo').files[0],driver=$('driver').files[0];if(!photo||!driver){$('status').textContent='AI 模式需要真实照片和驱动视频。';return}if(driver.size>50*1024*1024){$('status').textContent='驱动视频请小于 50MB。';return}setBusy(true);$('download').hidden=true;$('status').textContent='正在 CPU 推理，可能需要较长时间；请查看终端进度。';try{const form=new FormData();form.append('photo',photo);form.append('driving',driver);form.append('prompt',$('prompt').value);const res=await fetch('/api/generate',{method:'POST',body:form});if(!res.ok){let message='请按 README 启动 AI 后端。';try{const data=await res.json();message=data.detail||message}catch{}throw Error(message)}output(await res.blob(),'liveportrait.mp4');$('status').textContent='AI 视频已生成，可以播放或下载。'}catch(e){$('status').textContent='生成失败：'+e.message}finally{setBusy(false)}};
+$('export').onclick=async()=>{if(busy)return;if(!window.MediaRecorder||!canvas.captureStream){$('status').textContent='当前浏览器不支持录制，请使用新版 Edge 或 Chrome。';return}stop();canvas.hidden=false;$('result').hidden=true;setBusy(true);$('download').hidden=true;let stream,recorder;try{const type=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));if(!type)throw Error('浏览器不支持 WebM 录制');frame(0);stream=canvas.captureStream(25);recorder=new MediaRecorder(stream,{mimeType:type});const chunks=[];const completed=new Promise((resolve,reject)=>{recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>resolve(new Blob(chunks,{type}));recorder.onerror=()=>reject(Error('录制失败'))});recorder.start();const start=performance.now();await new Promise(resolve=>{function tick(now){const t=(now-start)/1000;frame(Math.min(t,4));$('status').textContent='正在录制 '+Math.min(t,4).toFixed(1)+' / 4 秒，请保持页面在前台。';if(t<4)anim=requestAnimationFrame(tick);else resolve()}anim=requestAnimationFrame(tick)});recorder.stop();const blob=await completed;if(!blob.size)throw Error('没有录到视频');output(blob,'photo-motion.webm');$('status').textContent='已导出 WebM 视频。这是普通照片动画，没有调用 AI。'}catch(e){$('status').textContent=e.message}finally{stop();if(recorder&&recorder.state==='recording')recorder.stop();if(stream)stream.getTracks().forEach(t=>t.stop());setBusy(false)}};
+frame(0);

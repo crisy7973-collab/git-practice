@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>旧照生成人物视频</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>旧照生成人物视频</h1>
+    <p>上传人物老照片，再写一句提示词，AI 会生成人物视频。</p>
+
+    <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+
+    <button type="button" class="photo-slot" id="photoSlot">
+      <span id="photoHint">点击上传人物老照片<br />JPG / PNG · 单人半身更佳</span>
+      <img id="photoPreview" alt="已选照片预览" />
+    </button>
+
+    <label class="prompt-label" for="promptInput">
+      提示词
+      <span id="promptCount">0 / 200</span>
+    </label>
+    <textarea
+      id="promptInput"
+      maxlength="200"
+      placeholder="例如：缓缓抬头，对镜头微笑，轻轻点头，暖黄灯光。"
+    ></textarea>
+
+    <div class="chips" id="chipRow">
+      <button type="button" class="chip" data-prompt="缓缓抬头，对镜头温柔微笑，眼神慢慢亮起来。">微笑醒来</button>
+      <button type="button" class="chip" data-prompt="轻轻点头，嘴唇微动，像在轻声说话。">轻声说话</button>
+      <button type="button" class="chip" data-prompt="缓慢转身侧过身，发丝轻动，电影感。">转身回望</button>
+      <button type="button" class="chip" data-prompt="抬手挥一挥，像在和亲人告别。">挥手告别</button>
+    </div>
+
+    <button type="button" id="generateBtn" disabled>生成人物视频</button>
+    <p class="note" id="note">请先上传照片并填写提示词</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

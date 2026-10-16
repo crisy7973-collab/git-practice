@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>忆影 · 旧照生成人物视频</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1410;
+      --paper: #f3e6d4;
+      --amber: #d4a04a;
+      --amber-glow: #e8b86a;
+      --teal: #2a4a4a;
+      --teal-deep: #142828;
+      --sepia: #8b6b4a;
+      --mist: rgba(243, 230, 212, 0.72);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: "ZCOOL XiaoWei", "Noto Serif SC", "Microsoft YaHei", "PingFang SC", serif;
+      color: var(--paper);
+      background: red;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .phone {
+      min-height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      isolation: isolate;
+    }
+
+    /* Full-bleed nostalgic film plane */
+    .hero-stage {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% 18%, rgba(212, 160, 74, 0.28), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 80% 80%, rgba(42, 74, 74, 0.9), transparent 50%),
+        linear-gradient(165deg, #1e3333 0%, #0f1a1a 45%, #1a120c 100%);
+    }
+
+    .hero-stage::before {
+      content: "";
+      position: absolute;
+      inset: -10%;
+      background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+      opacity: 0.18;
+      
+      pointer-events: none;
+      animation: grain-drift 8s steps(2) infinite;
+    }
+
+    .photo-plane {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .photo-frame {
+      width: min(78vw, 320px);
+      aspect-ratio: 3 / 4;
+      position: relative;
+      transform: translateY(8%) rotate(-2.5deg);
+      animation: photo-float 7s ease-in-out infinite;
+    }
+
+    .photo-frame::after {
+      content: "";
+      position: absolute;
+      inset: -2%;
+      border: 1px solid rgba(243, 230, 212, 0.22);
+      box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.45),
+        inset 0 0 40px rgba(26, 20, 16, 0.35);
+      pointer-events: none;
+    }
+
+    .photo-art {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: sepia(0.35) contrast(1.05) saturate(0.85);
+      animation: awaken 4.5s ease-in-out infinite alternate;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 28%;
+      top: -30%;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(232, 184, 106, 0.18),
+        transparent
+      );
+      animation: scan 5.5s ease-in-out infinite;
+      mix-blend-mode: screen;
+    }
+
+    .life-glow {
+      position: absolute;
+      inset: 18% 12%;
+      border-radius: 40% 45% 50% 40%;
+      background: radial-gradient(circle, rgba(232, 184, 106, 0.35), transparent 70%);
+      filter: blur(18px);
+      animation: pulse-life 3.2s ease-in-out infinite;
+      opacity: 0.55;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: max(18px, env(safe-area-inset-top)) 22px calc(28px + var(--safe-bottom));
+      min-height: 100dvh;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      animation: rise 0.9s ease 0.15s forwards;
+    }
+
+    .brand {
+      font-family: "Noto Serif SC", serif;
+      font-weight: 700;
+      font-size: 1.65rem;
+      letter-spacing: 0.28em;
+      color: var(--paper);
+      text-indent: 0.28em;
+      line-height: 1;
+    }
+
+    .brand span {
+      color: var(--amber);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 12px var(--amber-glow);
+      animation: blink 2.4s ease-in-out infinite;
+    }
+
+    .hero-copy {
+      margin-top: auto;
+      margin-bottom: 0;
+      padding-bottom: 8px;
+      max-width: 20em;
+    }
+
+    .slogan {
+      font-family: "Noto Serif SC", serif;
+      font-weight: 700;
+      font-size: clamp(2.35rem, 9.5vw, 2.85rem);
+      line-height: 1.2;
+      letter-spacing: 0.06em;
+      color: var(--paper);
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      animation: rise 1s ease 0.35s forwards;
+    }
+
+    .support {
+      margin-top: 14px;
+      font-size: 1.05rem;
+      line-height: 1.55;
+      color: var(--mist);
+      letter-spacing: 0.04em;
+      opacity: 0;
+      animation: rise 1s ease 0.55s forwards;
+    }
+
+    .cta-row {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+      animation: rise 1s ease 0.75s forwards;
+    }
+
+    .btn-primary {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      padding: 16px 20px;
+      font-family: inherit;
+      font-size: 1.1rem;
+      letter-spacing: 0.18em;
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--amber-glow), var(--amber) 55%, #b8843a);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .btn-primary::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+      transform: translateX(-120%);
+      animation: sheen 3.8s ease-in-out infinite;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+      filter: brightness(0.95);
+    }
+
+    .btn-ghost {
+      appearance: none;
+      background: transparent;
+      border: 1px solid rgba(243, 230, 212, 0.35);
+      color: var(--paper);
+      width: 100%;
+      padding: 14px 20px;
+      font-family: inherit;
+      font-size: 0.98rem;
+      letter-spacing: 0.14em;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .btn-ghost:active {
+      background: rgba(243, 230, 212, 0.08);
+      border-color: rgba(243, 230, 212, 0.55);
+    }
+
+    .hint {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: rgba(243, 230, 212, 0.5);
+      letter-spacing: 0.08em;
+      opacity: 0;
+      animation: rise 1s ease 0.95s forwards;
+    }
+
+    .phone.is-composing .hero-stage,
+    .phone.is-composing .content {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .compose {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: none;
+      flex-direction: column;
+      background:
+        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(212, 160, 74, 0.16), transparent 55%),
+        linear-gradient(180deg, #1a2e2e 0%, #0f1a1a 42%, #0c1414 100%);
+      padding: max(14px, env(safe-area-inset-top)) 18px calc(18px + var(--safe-bottom));
+      overflow: auto;
+    }
+
+    .compose.is-open {
+      display: flex;
+    }
+
+    .compose-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .compose-title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.2em;
+      color: var(--paper);
+    }
+
+    .btn-text {
+      appearance: none;
+      background: none;
+      border: none;
+      color: var(--amber);
+      font-family: inherit;
+      font-size: 0.95rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      padding: 8px 0;
+    }
+
+    .photo-slot {
+      width: 100%;
+      max-width: 220px;
+      margin: 0 auto 14px;
+      aspect-ratio: 3 / 4;
+      max-height: 38vh;
+      border: 1px dashed rgba(243, 230, 212, 0.35);
+      background: rgba(243, 230, 212, 0.04);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .photo-slot:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .photo-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      filter: sepia(0.2) contrast(1.04);
+    }
+
+    .photo-slot.has-photo {
+      border-style: solid;
+      border-color: rgba(212, 160, 74, 0.45);
+    }
+
+    .photo-slot.has-photo img {
+      display: block;
+    }
+
+    .photo-slot.has-photo .photo-slot-hint {
+      display: none;
+    }
+
+    .photo-slot-hint {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 20px;
+      color: var(--mist);
+      letter-spacing: 0.08em;
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+
+    .prompt-card {
+      margin-top: auto;
+      padding: 18px 16px 16px;
+      background: rgba(20, 28, 28, 0.72);
+      border: 1px solid rgba(243, 230, 212, 0.14);
+      backdrop-filter: blur(12px);
+    }
+
+    .prompt-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+      letter-spacing: 0.12em;
+      color: var(--paper);
+      font-size: 0.95rem;
+    }
+
+    .prompt-count {
+      font-size: 0.78rem;
+      color: rgba(243, 230, 212, 0.5);
+      letter-spacing: 0.04em;
+    }
+
+    .prompt-count.is-full {
+      color: #e08a6a;
+    }
+
+    #promptInput {
+      width: 100%;
+      min-height: 108px;
+      resize: vertical;
+      border: 1px solid rgba(243, 230, 212, 0.22);
+      background: rgba(10, 16, 16, 0.55);
+      color: var(--paper);
+      font-family: inherit;
+      font-size: 1rem;
+      line-height: 1.55;
+      letter-spacing: 0.04em;
+      padding: 12px 12px;
+      outline: none;
+    }
+
+    #promptInput::placeholder {
+      color: rgba(243, 230, 212, 0.38);
+    }
+
+    #promptInput:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(212, 160, 74, 0.18);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+
+    .chip {
+      appearance: none;
+      border: 1px solid rgba(243, 230, 212, 0.28);
+      background: transparent;
+      color: var(--paper);
+      font-family: inherit;
+      font-size: 0.86rem;
+      letter-spacing: 0.06em;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+
+    .chip.is-on,
+    .chip:active {
+      border-color: var(--amber);
+      background: rgba(212, 160, 74, 0.16);
+      color: var(--amber-glow);
+    }
+
+    .btn-primary:disabled {
+      cursor: not-allowed;
+      color: rgba(26, 20, 16, 0.55);
+      background: #5c534c;
+      filter: none;
+      transform: none;
+    }
+
+    .btn-primary:disabled::before {
+      display: none;
+    }
+
+    .payload-note {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: rgba(243, 230, 212, 0.45);
+      letter-spacing: 0.06em;
+      min-height: 1.2em;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes photo-float {
+      0%, 100% { transform: translateY(8%) rotate(-2.5deg); }
+      50% { transform: translateY(5%) rotate(-1.2deg); }
+    }
+
+    @keyframes awaken {
+      from { filter: sepia(0.55) contrast(0.95) saturate(0.6) brightness(0.92); }
+      to { filter: sepia(0.15) contrast(1.08) saturate(1.05) brightness(1.05); }
+    }
+
+    @keyframes scan {
+      0% { top: -30%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    @keyframes pulse-life {
+      0%, 100% { opacity: 0.35; transform: scale(0.95); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
+
+    @keyframes sheen {
+      0%, 55% { transform: translateX(-120%); }
+      75%, 100% { transform: translateX(120%); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    @keyframes grain-drift {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(-1.5%, 1%); }
+    }
+
+    @media (min-width: 480px) {
+      body {
+        background: #0a1010;
+      }
+      .phone {
+        box-shadow: 0 0 0 1px rgba(243, 230, 212, 0.08), 0 40px 80px rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      .top-bar, .slogan, .support, .cta-row, .hint {
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="hero-stage" aria-hidden="true">
+      <div class="photo-plane">
+        <div class="photo-frame">
+          <div class="life-glow"></div>
+          <!-- Inline nostalgic portrait as dominant visual (SVG) -->
+          <svg class="photo-art" viewBox="0 0 360 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="老照片示意">
+            <defs>
+              <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6b5a48"/>
+                <stop offset="55%" stop-color="#3d342c"/>
+                <stop offset="100%" stop-color="#2a221c"/>
+              </linearGradient>
+              <radialGradient id="face" cx="50%" cy="38%" r="42%">
+                <stop offset="0%" stop-color="#c4a88a"/>
+                <stop offset="70%" stop-color="#8a6f55"/>
+                <stop offset="100%" stop-color="#5c4636"/>
+              </radialGradient>
+              <linearGradient id="cloth" x1="0.5" y1="0" x2="0.5" y2="1">
+                <stop offset="0%" stop-color="#3a4a4a"/>
+                <stop offset="100%" stop-color="#1e2a2a"/>
+              </linearGradient>
+            </defs>
+            <rect width="360" height="480" fill="url(#bg)"/>
+            <!-- soft vignette -->
+            <ellipse cx="180" cy="210" rx="150" ry="180" fill="url(#face)" opacity="0.95"/>
+            <!-- hair -->
+            <ellipse cx="180" cy="150" rx="92" ry="78" fill="#2a221c"/>
+            <ellipse cx="120" cy="190" rx="28" ry="55" fill="#2a221c"/>
+            <ellipse cx="240" cy="190" rx="28" ry="55" fill="#2a221c"/>
+            <!-- face -->
+            <ellipse cx="180" cy="205" rx="68" ry="80" fill="#b89572"/>
+            <!-- eyes closed / soft gaze -->
+            <ellipse cx="155" cy="200" rx="8" ry="4" fill="#3a2e26"/>
+            <ellipse cx="205" cy="200" rx="8" ry="4" fill="#3a2e26"/>
+            <path d="M148 198 Q155 194 162 198" stroke="#3a2e26" stroke-width="1.5" fill="none" opacity="0.5"/>
+            <path d="M198 198 Q205 194 212 198" stroke="#3a2e26" stroke-width="1.5" fill="none" opacity="0.5"/>
+            <!-- nose & mouth -->
+            <path d="M180 210 L176 230 Q180 234 184 230 Z" fill="#9a7a5c" opacity="0.7"/>
+            <path d="M165 248 Q180 258 195 248" stroke="#7a5a45" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <!-- collar / shoulders -->
+            <path d="M70 360 Q120 300 180 310 Q240 300 290 360 L300 480 L60 480 Z" fill="url(#cloth)"/>
+            <path d="M150 318 Q180 340 210 318" stroke="#d4a04a" stroke-width="1.5" fill="none" opacity="0.45"/>
+            <!-- film scratches -->
+            <line x1="40" y1="20" x2="48" y2="460" stroke="#f3e6d4" stroke-width="0.6" opacity="0.12"/>
+            <line x1="310" y1="40" x2="300" y2="450" stroke="#f3e6d4" stroke-width="0.5" opacity="0.1"/>
+            <circle cx="90" cy="80" r="2" fill="#f3e6d4" opacity="0.2"/>
+            <circle cx="260" cy="120" r="1.5" fill="#f3e6d4" opacity="0.15"/>
+          </svg>
+          <div class="scan-line"></div>
+        </div>
+      </div>
+    </div>
+
+    <main class="content">
+      <header class="top-bar">
+        <h1 class="brand">忆<span>影</span></h1>
+        <div class="status-dot" aria-hidden="true" title="AI 就绪"></div>
+      </header>
+
+      <div class="hero-copy">
+        <p class="slogan">测试</p>
+        <p class="support">广告语</p>
+
+        <div class="cta-row">
+          <button type="button" class="btn-primary" id="uploadBtn">上传老照片</button>
+          <button type="button" class="btn-ghost" id="demoBtn">先看一段演示</button>
+        </div>
+        <p class="hint">支持 JPG / PNG · 单人半身效果最佳</p>
+      </div>
+    </main>
+
+    <section class="compose" id="composeScreen" aria-label="填写生成提示词" hidden>
+      <div class="compose-top">
+        <button type="button" class="btn-text" id="backBtn">返回</button>
+        <h2 class="compose-title">写提示词</h2>
+        <span aria-hidden="true" style="width:2.5em"></span>
+      </div>
+
+      <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+
+      <button type="button" class="photo-slot" id="photoSlot" aria-label="选择人物老照片">
+        <span class="photo-slot-hint">点此上传人物老照片<br />JPG / PNG · 单人半身更佳</span>
+        <img id="photoPreview" alt="已选老照片预览" />
+      </button>
+
+      <div class="prompt-card">
+        <div class="prompt-label">
+          <label for="promptInput">想让 TA 怎样动起来</label>
+          <span class="prompt-count" id="promptCount">0 / 200</span>
+        </div>
+        <textarea
+          id="promptInput"
+          maxlength="200"
+          placeholder="例如：老人缓缓抬头，对镜头微笑，轻轻点头，像在说“我想你了”。镜头缓慢推进，暖黄灯光。"
+        ></textarea>
+        <div class="chips" id="chipRow">
+          <button type="button" class="chip" data-prompt="缓缓抬头，对镜头温柔微笑，眼神慢慢亮起来。">微笑醒来</button>
+          <button type="button" class="chip" data-prompt="轻轻点头，嘴唇微动，像在轻声说话，背景旧房间暖光。">轻声说话</button>
+          <button type="button" class="chip" data-prompt="缓慢转身侧过身，风吹动衣角，发丝轻动，电影感。">转身回望</button>
+          <button type="button" class="chip" data-prompt="抬手挥一挥，像在和亲人告别，眼眶微湿，画面怀旧。">挥手告别</button>
+        </div>
+        <button type="button" class="btn-primary" id="generateBtn" disabled>生成人物视频</button>
+        <p class="payload-note" id="payloadNote">请先上传照片并填写提示词</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const MAX_PROMPT = 200;
+    const uploadBtn = document.getElementById("uploadBtn");
+    const demoBtn = document.getElementById("demoBtn");
+    const composeScreen = document.getElementById("composeScreen");
+    const backBtn = document.getElementById("backBtn");
+    const photoInput = document.getElementById("photoInput");
+    const photoSlot = document.getElementById("photoSlot");
+    const photoPreview = document.getElementById("photoPreview");
+    const promptInput = document.getElementById("promptInput");
+    const promptCount = document.getElementById("promptCount");
+    const generateBtn = document.getElementById("generateBtn");
+    const payloadNote = document.getElementById("payloadNote");
+    const chipRow = document.getElementById("chipRow");
+
+    const phone = document.querySelector(".phone");
+    let photoFile = null;
+
+    function openCompose(pickPhoto) {
+      phone.classList.add("is-composing");
+      composeScreen.hidden = false;
+      composeScreen.removeAttribute("aria-hidden");
+      composeScreen.classList.add("is-open");
+      if (pickPhoto) photoInput.click();
+      promptInput.focus();
+    }
+
+    function closeCompose() {
+      composeScreen.classList.remove("is-open");
+      composeScreen.hidden = true;
+      composeScreen.setAttribute("aria-hidden", "true");
+      phone.classList.remove("is-composing");
+    }
+
+    function syncGenerateState() {
+      const prompt = promptInput.value.trim();
+      const ready = Boolean(photoFile) && prompt.length > 0;
+      generateBtn.disabled = !ready;
+      promptCount.textContent = `${promptInput.value.length} / ${MAX_PROMPT}`;
+      promptCount.classList.toggle("is-full", promptInput.value.length >= MAX_PROMPT);
+      if (!photoFile) {
+        payloadNote.textContent = "请先上传一张人物老照片";
+      } else if (!prompt) {
+        payloadNote.textContent = "写一句提示词，告诉 AI 人物如何动作";
+      } else {
+        payloadNote.textContent = "前端已备好照片与提示词，可交给后端生成";
+      }
+    }
+
+    uploadBtn.addEventListener("click", () => openCompose(false));
+
+    photoSlot.addEventListener("click", () => photoInput.click());
+
+    backBtn.addEventListener("click", closeCompose);
+
+    photoInput.addEventListener("change", () => {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      photoFile = file;
+      const url = URL.createObjectURL(file);
+      photoPreview.src = url;
+      photoSlot.classList.add("has-photo");
+      syncGenerateState();
+    });
+
+    promptInput.addEventListener("input", syncGenerateState);
+
+    chipRow.addEventListener("click", (event) => {
+      const chip = event.target.closest(".chip");
+      if (!chip) return;
+      promptInput.value = chip.dataset.prompt || "";
+      chipRow.querySelectorAll(".chip").forEach((item) => item.classList.toggle("is-on", item === chip));
+      syncGenerateState();
+    });
+
+    generateBtn.addEventListener("click", () => {
+      const payload = {
+        photoName: photoFile && photoFile.name,
+        photoType: photoFile && photoFile.type,
+        photoSize: photoFile && photoFile.size,
+        prompt: promptInput.value.trim(),
+      };
+      // 后端接入点：把 photoFile + prompt 组成 FormData 提交
+      window.yiYingJob = { file: photoFile, prompt: payload.prompt };
+      payloadNote.textContent = `已打包：${payload.photoName} · 「${payload.prompt.slice(0, 18)}${payload.prompt.length > 18 ? "…" : ""}」`;
+    });
+
+    demoBtn.addEventListener("click", () => {
+      demoBtn.textContent = "加载演示…";
+      setTimeout(() => {
+        demoBtn.textContent = "先看一段演示";
+        alert("演示视频入口可在此接入");
+      }, 400);
+    });
+
+    syncGenerateState();
+  </script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  【整份文件的分工】
+  1. <head>   ：看不见的设置（标题、字体、样式）
+  2. <body>   ：看得见的界面
+  3. <style>  ：CSS，负责长相
+  4. <script> ：JS，负责点击、上传、生成
+-->
+<head>
+  <!-- ===== A. 页面设置（用户看不见）===== -->
+  <meta charset="UTF-8" />
+  <!-- 上面：中文不会乱码 -->
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 上面：手机上按屏幕宽度显示 -->
+
+  <title>忆影 · 旧照生成人物视频</title>
+  <!-- 上面：浏览器标签上的名字 -->
+
+  <!-- 下面：从网上加载中文字体（可选） -->
+  <link href="...fonts..." rel="stylesheet" />
+
+  <style>
+    /*
+      ===== B. CSS 样式区（写在 HTML 里）=====
+      真实文件 index.html 里这里有很长一段。
+      按作用可以分成：
+    */
+
+    /* B1. 颜色变量：起别名，后面用 var(--paper) */
+    :root { /* --paper、--amber、--teal-deep ... */ }
+
+    /* B2. 重置：清掉浏览器默认边距 */
+    * { margin: 0; padding: 0; }
+
+    /* B3. 整页：字体、背景、禁止左右滑 */
+    body { /* font-family / color / background */ }
+
+    /* B4. 手机框容器：居中、限宽 430px、纵向排布 */
+    .phone { /* position / flex / isolation */ }
+
+    /* B5. 首页背景海报：深色渐变 + 老照片示意 */
+    .hero-stage { /* 绝对定位铺满手机框 */ }
+    .photo-frame { /* 倾斜的相框 */ }
+
+    /* B6. 首页文字与按钮 */
+    .brand { /* 品牌名「忆影」 */ }
+    .slogan { /* 大标题 */ }
+    .btn-primary { /* 金色主按钮 */ }
+
+    /* B7. 提示词页（第二屏）*/
+    .compose { /* 默认隐藏，点上传后打开 */ }
+    .photo-slot { /* 上传虚线框 */ }
+    #promptInput { /* id 选择器：提示词输入框 */ }
+    .chip { /* 快捷提示词按钮 */ }
+  </style>
+</head>
+
+<body>
+  <!-- ===== C. 可见界面：一只「手机框」包住所有内容 ===== -->
+  <div class="phone">
+
+    <!-- ---------- C1. 首页背景层（只负责好看）---------- -->
+    <div class="hero-stage">
+      <div class="photo-plane">
+        <div class="photo-frame">
+          <!-- 发光、SVG 人物示意、扫描线动画 -->
+          <!-- 用户不点这里，纯展示 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- C2. 首页内容层（品牌 + 口号 + 两个按钮）---------- -->
+    <main class="content">
+      <header class="top-bar">
+        <h1 class="brand">忆影</h1>
+        <!-- 品牌名 -->
+        <div class="status-dot"></div>
+        <!-- 右上角小黄点：表示「AI 就绪」 -->
+      </header>
+
+      <div class="hero-copy">
+        <p class="slogan">大标题文案</p>
+        <p class="support">一句说明：上传老照片，AI 让人动起来</p>
+
+        <div class="cta-row">
+          <!-- id="uploadBtn"：JS 用它打开「写提示词」页 -->
+          <button id="uploadBtn">上传老照片</button>
+          <!-- id="demoBtn"：以后接演示视频 -->
+          <button id="demoBtn">先看一段演示</button>
+        </div>
+
+        <p class="hint">支持 JPG / PNG</p>
+      </div>
+    </main>
+
+    <!-- ---------- C3. 第二屏：写提示词（默认 hidden，看不见）---------- -->
+    <section class="compose" id="composeScreen" hidden>
+
+      <!-- 顶栏：返回 + 标题 -->
+      <div class="compose-top">
+        <button id="backBtn">返回</button>
+        <h2>写提示词</h2>
+      </div>
+
+      <!-- 真正的选文件控件（隐藏），被下面虚线框间接点开 -->
+      <input id="photoInput" type="file" accept="image/*" hidden />
+
+      <!-- 用户看见的上传区：点它 → 触发 photoInput -->
+      <button id="photoSlot">
+        <span>点此上传人物老照片</span>
+        <img id="photoPreview" alt="预览" />
+        <!-- 选图后 JS 给 img 设 src，并加 class has-photo -->
+      </button>
+
+      <!-- 提示词卡片 -->
+      <div class="prompt-card">
+        <label for="promptInput">想让 TA 怎样动起来</label>
+        <span id="promptCount">0 / 200</span>
+        <!-- 字数统计，JS 会改这里的字 -->
+
+        <textarea id="promptInput" maxlength="200"></textarea>
+        <!-- 用户手写提示词的地方 -->
+
+        <div id="chipRow">
+          <!-- 快捷芯片：点一下把 data-prompt 整句填进 textarea -->
+          <button class="chip" data-prompt="完整提示词句子...">微笑醒来</button>
+          <button class="chip" data-prompt="...">轻声说话</button>
+          <button class="chip" data-prompt="...">转身回望</button>
+          <button class="chip" data-prompt="...">挥手告别</button>
+        </div>
+
+        <!-- 照片+提示词都有了才可点；JS 改 disabled -->
+        <button id="generateBtn" disabled>生成人物视频</button>
+        <p id="payloadNote">状态提示文字</p>
+      </div>
+    </section>
+
+  </div>
+  <!-- /.phone 结束 -->
+
+  <script>
+    /*
+      ===== D. JavaScript：让按钮真正干活 =====
+      真实逻辑在 index.html 底部 <script> 里。
+      按步骤可以记成：
+    */
+
+    // D1. 用 id 抓住页面上的控件
+    // document.getElementById("uploadBtn") 等
+
+    // D2. 记状态：有没有选中照片
+    // let photoFile = null;
+
+    // D3. 打开 / 关闭提示词页
+    // openCompose() → 显示 #composeScreen
+    // closeCompose() → 隐藏，回到首页
+
+    // D4. 选照片
+    // photoInput change → 预览 + photoFile = 文件 + syncGenerateState()
+
+    // D5. 写提示词 / 点芯片
+    // input / chip 点击 → 更新字数、点亮芯片、判断能否生成
+
+    // D6. 点生成
+    // 把 { file, prompt } 放进 window.yiYingJob
+    // （以后在这里 fetch 调 API 交给后端）
+
+    // D7. 页面加载完先跑一次 syncGenerateState()
+  </script>
+</body>
+</html>
+
+<!--
+【用户操作路径对照】
+
+  打开页面
+      │
+      ▼
+  C1 背景 + C2 首页文案按钮
+      │
+      │ 点「上传老照片」(uploadBtn)
+      ▼
+  C3 提示词页打开
+      │
+      ├─ 点虚线框 → 选照片 → 出现预览
+      ├─ 打字或点芯片 → 填提示词
+      └─ 两样都齐 →「生成」可点 → 打包数据（以后接 API）
+
+【三种选择器在本框架里的位置】
+
+  标签选择器  body / h1          → 整页或某类标签
+  class 选择器 .phone / .chip    → 样式分组（前面有点）
+  id 选择器    #uploadBtn 等     → 唯一控件，JS 要抓住的（前面有井号）
+-->
